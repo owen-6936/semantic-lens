@@ -12,6 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [1.1.0] - 2026-03-23
 
 ### Added
+
 - Web UI (`/ui`) — dark-themed OCR tester with drag-and-drop image upload,
   canvas bounding-box overlay, color-keyed detection cards, and one-click
   ADB tap command copy
@@ -22,7 +23,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `compose.yml` — Docker Compose with NVIDIA GPU passthrough and EasyOCR
   model volume cache
 - `CHANGELOG.md` (this file)
-- `.github/workflows/ci.yml` — lint, syntax, YAML validation, Dockerfile lint
+- `.github/workflows/ci.yml` — lint, syntax, YAML validation, Dockerfile lint,
+  and pytest matrix (Python 3.11 + 3.12)
+- `tests/` — 49 pytest tests covering `config.py`, `ocr_engine.py`, and all
+  HTTP endpoints; torch/easyocr mocked so CI never needs a GPU build
+- `requirements-test.txt` — lightweight test dependencies (no torch/easyocr)
 - `.github/workflows/codeql.yml` — weekly CodeQL security scan
 - Stable tunnel URLs: `NGROK_DOMAIN` and `CF_TUNNEL` in `.env` persist the
   public address across restarts
@@ -30,6 +35,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `GET /spec` endpoint — serves OpenAPI spec as YAML
 
 ### Fixed
+
 - Model download failure (`ContentTooShortError`) — replaced EasyOCR's
   `urllib.urlretrieve` with a `wget -c` / `curl -C -` resumable downloader
   that picks up interrupted downloads instead of failing after 70+ MB
@@ -39,6 +45,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `/health` poll loop (2 s intervals, 2 min timeout) for reliability
 
 ### Changed
+
 - `start.sh` now sources `.env` before prompting, so `PORT` from `.env`
   is respected and tunnel vars are available
 - `start.sh` warns explicitly when tunnel vars are unset and explains
@@ -49,6 +56,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [1.0.0] - 2026-03-23
 
 ### Added
+
 - FastAPI OCR server with EasyOCR backend (PyTorch-based)
 - Auto CUDA / CPU device detection — Blackwell (SM 10.x) supported via
   PyTorch 2.7+ / CUDA 12.8 nightly

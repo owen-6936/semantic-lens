@@ -1,417 +1,911 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>semantic-lens — OCR Tester</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
-      --bg:        #07070e;
-      --surface:   #0e0e1a;
-      --card:      #13131f;
-      --border:    #1f1f35;
+      --bg: #07070e;
+      --surface: #0e0e1a;
+      --card: #13131f;
+      --border: #1f1f35;
       --border-hi: #2e2e50;
-      --accent:    #7c3aed;
-      --accent-lo: rgba(124,58,237,.15);
-      --cyan:      #06b6d4;
-      --green:     #10b981;
-      --amber:     #f59e0b;
-      --red:       #ef4444;
-      --text:      #e2e8f0;
-      --muted:     #64748b;
-      --radius:    10px;
+      --accent: #7c3aed;
+      --accent-lo: rgba(124, 58, 237, .15);
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --radius: 10px;
       --font: 'Inter', system-ui, sans-serif;
     }
 
-    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; }
+    html,
+    body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+    }
 
     /* ── scrollbar ── */
-    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--surface); } ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--surface);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-hi);
+      border-radius: 3px;
+    }
 
     /* ── layout ── */
-    body { display: grid; grid-template-rows: 56px auto 1fr; height: 100dvh; overflow: hidden; }
-    header { display: flex; align-items: center; gap: 16px; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
-    #toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 20px; background: var(--card); border-bottom: 1px solid var(--border); }
-    main { display: grid; grid-template-columns: 1fr 340px; overflow: hidden; }
+    body {
+      display: grid;
+      grid-template-rows: 56px auto 1fr;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 10px 20px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      overflow: hidden;
+    }
 
     /* ── header ── */
-    .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; letter-spacing: -.3px; flex-shrink: 0; }
-    .logo svg { color: var(--accent); }
-    .config { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-    .status-wrap { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
-    #status-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); transition:.3s; flex-shrink:0; }
-    #status-dot.online  { background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 2s infinite; }
-    #status-dot.offline { background:var(--red); }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -.3px;
+      flex-shrink: 0;
+    }
+
+    .logo svg {
+      color: var(--accent);
+    }
+
+    .config {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .status-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    #status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: .3s;
+      flex-shrink: 0;
+    }
+
+    #status-dot.online {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    #status-dot.offline {
+      background: var(--red);
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .5
+      }
+    }
 
     /* ── inputs ── */
-    input[type=text], input[type=url], input[type=password], input[type=number] {
-      background: var(--bg); border: 1px solid var(--border); color: var(--text);
-      border-radius: 7px; padding: 5px 10px; font-size: 13px; font-family: inherit;
-      outline: none; transition: border-color .2s;
+    input[type=text],
+    input[type=url],
+    input[type=password],
+    input[type=number] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 7px;
+      padding: 5px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s;
     }
-    input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-lo); }
-    #inp-url { width: 210px; } #inp-key { width: 155px; }
-    input::placeholder { color: var(--muted); }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-lo);
+    }
+
+    #inp-url {
+      width: 210px;
+    }
+
+    #inp-key {
+      width: 155px;
+    }
+
+    input::placeholder {
+      color: var(--muted);
+    }
 
     /* ── buttons ── */
-    button { border: none; cursor: pointer; font-family: inherit; font-size: 13px; border-radius: 7px; transition: all .18s; }
-    .btn-primary { background: var(--accent); color: #fff; padding: 6px 16px; font-weight: 600; }
-    .btn-primary:hover { background: #6d28d9; box-shadow: 0 0 14px var(--accent-lo); }
-    .btn-primary:active { transform: scale(.97); }
-    .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; }
-    .btn-ghost { background: transparent; color: var(--muted); padding: 5px 10px; border: 1px solid var(--border); }
-    .btn-ghost:hover { border-color: var(--border-hi); color: var(--text); }
-    .btn-copy { background: var(--accent-lo); color: var(--accent); padding: 3px 9px; font-size: 11px; font-weight: 600; border: 1px solid transparent; }
-    .btn-copy:hover { border-color: var(--accent); }
-    .btn-copy.copied { background: rgba(16,185,129,.15); color: var(--green); border-color: var(--green); }
+    button {
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      border-radius: 7px;
+      transition: all .18s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      padding: 6px 16px;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background: #6d28d9;
+      box-shadow: 0 0 14px var(--accent-lo);
+    }
+
+    .btn-primary:active {
+      transform: scale(.97);
+    }
+
+    .btn-primary:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--border-hi);
+      color: var(--text);
+    }
+
+    .btn-copy {
+      background: var(--accent-lo);
+      color: var(--accent);
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+
+    .btn-copy:hover {
+      border-color: var(--accent);
+    }
+
+    .btn-copy.copied {
+      background: rgba(16, 185, 129, .15);
+      color: var(--green);
+      border-color: var(--green);
+    }
 
     /* ── tabs ── */
-    .tabs { display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
-    .tab { background: transparent; color: var(--muted); padding: 4px 14px; border-radius: 6px; font-weight: 500; }
-    .tab.active { background: var(--accent); color: #fff; }
-    .tab:hover:not(.active) { color: var(--text); }
+    .tabs {
+      display: flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+    }
+
+    .tab {
+      background: transparent;
+      color: var(--muted);
+      padding: 4px 14px;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .tab:hover:not(.active) {
+      color: var(--text);
+    }
 
     /* ── toolbar items ── */
-    #find-bar { display:flex; align-items:center; gap:8px; }
-    #find-bar.hidden { display:none; }
-    label.row { display:flex; align-items:center; gap:6px; color:var(--muted); cursor:pointer; }
-    label.row input[type=checkbox] { accent-color:var(--accent); }
-    .sep { width:1px; height:20px; background:var(--border); }
-    .conf-label { color:var(--muted); font-size:12px; white-space:nowrap; }
-    #inp-conf { width:55px; }
-    #run-btn { margin-left:auto; }
+    #find-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #find-bar.hidden {
+      display: none;
+    }
+
+    label.row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    label.row input[type=checkbox] {
+      accent-color: var(--accent);
+    }
+
+    .sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    .conf-label {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    #inp-conf {
+      width: 55px;
+    }
+
+    #run-btn {
+      margin-left: auto;
+    }
 
     /* ── upload / image panel ── */
-    .img-panel { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; background:var(--surface); border-right:1px solid var(--border); }
-    #drop-zone { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; cursor:pointer; border:2px dashed var(--border-hi); margin:20px; border-radius:var(--radius); transition:border-color .2s, background .2s; }
-    #drop-zone:hover, #drop-zone.drag-over { border-color:var(--accent); background:var(--accent-lo); }
-    #drop-zone svg { color:var(--muted); }
-    #drop-zone p { color:var(--muted); text-align:center; font-size:13px; }
-    #drop-zone span { color:var(--accent); text-decoration:underline; }
-    #file-input { display:none; }
-    #canvas-wrap { position:relative; width:100%; height:100%; display:none; align-items:center; justify-content:center; }
-    #canvas-wrap.visible { display:flex; }
-    #overlay { max-width:100%; max-height:100%; cursor:crosshair; }
+    .img-panel {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+    }
+
+    #drop-zone {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      cursor: pointer;
+      border: 2px dashed var(--border-hi);
+      margin: 20px;
+      border-radius: var(--radius);
+      transition: border-color .2s, background .2s;
+    }
+
+    #drop-zone:hover,
+    #drop-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-lo);
+    }
+
+    #drop-zone svg {
+      color: var(--muted);
+    }
+
+    #drop-zone p {
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    #drop-zone span {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    #file-input {
+      display: none;
+    }
+
+    #canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #canvas-wrap.visible {
+      display: flex;
+    }
+
+    #overlay {
+      max-width: 100%;
+      max-height: 100%;
+      cursor: crosshair;
+    }
 
     /* ── results panel ── */
-    .results-panel { display:flex; flex-direction:column; overflow:hidden; background:var(--card); }
-    .results-header { padding:12px 16px 8px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); flex-shrink:0; }
-    .results-header h3 { font-size:13px; font-weight:600; }
-    #det-count { margin-left:auto; background:var(--accent-lo); color:var(--accent); font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; }
-    #stats-bar { padding:4px 16px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; gap:16px; flex-shrink:0; font-size:11px; color:var(--muted); }
-    #stats-bar.hidden { display:none; }
-    .stat { display:flex; align-items:center; gap:5px; }
-    #results-list { overflow-y:auto; flex:1; padding:10px; display:flex; flex-direction:column; gap:8px; }
-    #empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:12px; color:var(--muted); font-size:13px; }
-    #empty-state svg { opacity:.3; }
-    #empty-state.hidden { display:none; }
+    .results-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--card);
+    }
+
+    .results-header {
+      padding: 12px 16px 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .results-header h3 {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    #det-count {
+      margin-left: auto;
+      background: var(--accent-lo);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    #stats-bar {
+      padding: 4px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 16px;
+      flex-shrink: 0;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    #stats-bar.hidden {
+      display: none;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    #results-list {
+      overflow-y: auto;
+      flex: 1;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    #empty-state svg {
+      opacity: .3;
+    }
+
+    #empty-state.hidden {
+      display: none;
+    }
 
     /* ── detection card ── */
-    .det-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:11px 12px; cursor:pointer; transition:border-color .2s, box-shadow .2s; }
-    .det-card:hover, .det-card.highlighted { border-color:var(--border-hi); box-shadow:0 0 0 1px var(--border-hi) inset; }
-    .det-card.highlighted { box-shadow:0 0 0 1.5px var(--accent) inset; }
-    .det-top { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; }
-    .det-idx { width:20px; height:20px; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; flex-shrink:0; background:var(--accent-lo); color:var(--accent); }
-    .det-text { font-size:15px; font-weight:700; flex:1; word-break:break-all; line-height:1.3; }
-    .conf-pill { font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; flex-shrink:0; }
-    .conf-high { background:rgba(16,185,129,.15); color:var(--green); }
-    .conf-mid  { background:rgba(245,158,11,.12); color:var(--amber); }
-    .conf-low  { background:rgba(239,68,68,.12);  color:var(--red); }
-    .det-adb { display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--border); border-radius:6px; padding:5px 8px; margin-bottom:6px; }
-    .det-adb code { flex:1; font-size:11px; color:var(--cyan); font-family:'JetBrains Mono','Fira Code',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .det-meta { display:flex; gap:12px; font-size:11px; color:var(--muted); }
+    .det-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 11px 12px;
+      cursor: pointer;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .det-card:hover,
+    .det-card.highlighted {
+      border-color: var(--border-hi);
+      box-shadow: 0 0 0 1px var(--border-hi) inset;
+    }
+
+    .det-card.highlighted {
+      box-shadow: 0 0 0 1.5px var(--accent) inset;
+    }
+
+    .det-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .det-idx {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+      background: var(--accent-lo);
+      color: var(--accent);
+    }
+
+    .det-text {
+      font-size: 15px;
+      font-weight: 700;
+      flex: 1;
+      word-break: break-all;
+      line-height: 1.3;
+    }
+
+    .conf-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+
+    .conf-high {
+      background: rgba(16, 185, 129, .15);
+      color: var(--green);
+    }
+
+    .conf-mid {
+      background: rgba(245, 158, 11, .12);
+      color: var(--amber);
+    }
+
+    .conf-low {
+      background: rgba(239, 68, 68, .12);
+      color: var(--red);
+    }
+
+    .det-adb {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 8px;
+      margin-bottom: 6px;
+    }
+
+    .det-adb code {
+      flex: 1;
+      font-size: 11px;
+      color: var(--cyan);
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .det-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--muted);
+    }
 
     /* ── loading overlay ── */
-    #loading { position:fixed; inset:0; background:rgba(7,7,14,.7); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:99; }
-    #loading.hidden { display:none; }
-    .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
-    @keyframes spin { to { transform:rotate(360deg); } }
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 7, 14, .7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99;
+    }
+
+    #loading.hidden {
+      display: none;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     /* ── toast ── */
-    #toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--card); border:1px solid var(--border-hi); color:var(--text); padding:8px 18px; border-radius:8px; font-size:13px; opacity:0; transition:.3s; pointer-events:none; z-index:100; }
-    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--card);
+      border: 1px solid var(--border-hi);
+      color: var(--text);
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      opacity: 0;
+      transition: .3s;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
   </style>
 </head>
+
 <body>
 
-<!-- ── header ─────────────────────────────────────────────── -->
-<header>
-  <div class="logo">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="11" cy="11" r="8"/><circle cx="11" cy="11" r="3"/>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-    semantic-lens
-  </div>
-  <div class="config">
-    <input type="url" id="inp-url" placeholder="http://localhost:8000" value="http://localhost:8000" />
-    <input type="password" id="inp-key" placeholder="API key (optional)" />
-    <div class="status-wrap">
-      <div id="status-dot"></div>
-      <span id="status-label">—</span>
+  <!-- ── header ─────────────────────────────────────────────── -->
+  <header>
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8" />
+        <circle cx="11" cy="11" r="3" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      semantic-lens
     </div>
-  </div>
-</header>
-
-<!-- ── toolbar ────────────────────────────────────────────── -->
-<div id="toolbar">
-  <div class="tabs">
-    <button class="tab active" data-mode="scan">Scan All</button>
-    <button class="tab" data-mode="find">Find Text</button>
-  </div>
-
-  <div id="find-bar" class="hidden">
-    <input type="text" id="inp-query" placeholder="Text to find…" style="width:160px" />
-    <label class="row">
-      <input type="checkbox" id="inp-case" />
-      Case sensitive
-    </label>
-  </div>
-
-  <div class="sep"></div>
-  <span class="conf-label">Min confidence</span>
-  <input type="number" id="inp-conf" value="0.4" min="0" max="1" step="0.05" />
-
-  <div class="sep"></div>
-  <button class="btn-ghost" id="clear-btn">Clear</button>
-  <button class="btn-primary" id="run-btn" disabled>▶ Run</button>
-</div>
-
-<!-- ── main ───────────────────────────────────────────────── -->
-<main>
-  <!-- left: image panel -->
-  <div class="img-panel">
-    <div id="drop-zone">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-        <polyline points="21 15 16 10 5 21"/></svg>
-      <p>Drop a screenshot here<br/>or <span>click to browse</span></p>
-    </div>
-    <div id="canvas-wrap">
-      <canvas id="overlay"></canvas>
-    </div>
-    <input type="file" id="file-input" accept="image/*" />
-  </div>
-
-  <!-- right: results panel -->
-  <div class="results-panel">
-    <div class="results-header">
-      <h3>Detections</h3>
-      <span id="det-count" class="hidden">0</span>
-    </div>
-    <div id="stats-bar" class="hidden">
-      <span class="stat">⏱ <span id="stat-time">—</span></span>
-      <span class="stat">⚡ <span id="stat-device">—</span></span>
-      <span class="stat">📐 <span id="stat-size">—</span></span>
-    </div>
-    <div id="results-list">
-      <div id="empty-state">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        Drop an image and press Run
+    <div class="config">
+      <input type="url" id="inp-url" placeholder="http://localhost:8000" value="http://localhost:8000" />
+      <input type="password" id="inp-key" placeholder="API key (optional)" />
+      <div class="status-wrap">
+        <div id="status-dot"></div>
+        <span id="status-label">—</span>
       </div>
     </div>
+  </header>
+
+  <!-- ── toolbar ────────────────────────────────────────────── -->
+  <div id="toolbar">
+    <div class="tabs">
+      <button class="tab active" data-mode="scan">Scan All</button>
+      <button class="tab" data-mode="find">Find Text</button>
+    </div>
+
+    <div id="find-bar" class="hidden">
+      <input type="text" id="inp-query" placeholder="Text to find…" style="width:160px" />
+      <label class="row">
+        <input type="checkbox" id="inp-case" />
+        Case sensitive
+      </label>
+    </div>
+
+    <div class="sep"></div>
+    <span class="conf-label">Min confidence</span>
+    <input type="number" id="inp-conf" value="0.4" min="0" max="1" step="0.05" />
+
+    <div class="sep"></div>
+    <button class="btn-ghost" id="clear-btn">Clear</button>
+    <button class="btn-primary" id="run-btn" disabled>▶ Run</button>
   </div>
-</main>
 
-<!-- ── loading overlay ────────────────────────────────────── -->
-<div id="loading" class="hidden"><div class="spinner"></div></div>
+  <!-- ── main ───────────────────────────────────────────────── -->
+  <main>
+    <!-- left: image panel -->
+    <div class="img-panel">
+      <div id="drop-zone">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <polyline points="21 15 16 10 5 21" />
+        </svg>
+        <p>Drop a screenshot here<br />or <span>click to browse</span></p>
+      </div>
+      <div id="canvas-wrap">
+        <canvas id="overlay"></canvas>
+      </div>
+      <input type="file" id="file-input" accept="image/*" />
+    </div>
 
-<!-- ── toast ──────────────────────────────────────────────── -->
-<div id="toast"></div>
+    <!-- right: results panel -->
+    <div class="results-panel">
+      <div class="results-header">
+        <h3>Detections</h3>
+        <span id="det-count" class="hidden">0</span>
+      </div>
+      <div id="stats-bar" class="hidden">
+        <span class="stat">⏱ <span id="stat-time">—</span></span>
+        <span class="stat">⚡ <span id="stat-device">—</span></span>
+        <span class="stat">📐 <span id="stat-size">—</span></span>
+      </div>
+      <div id="results-list">
+        <div id="empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          Drop an image and press Run
+        </div>
+      </div>
+    </div>
+  </main>
 
-<script>
-(() => {
-  // ── state ────────────────────────────────────────────────
-  let mode = 'scan';
-  let imageFile = null;
-  let imageNW = 0, imageNH = 0;
-  let detections = [];
-  let highlightIdx = -1;
+  <!-- ── loading overlay ────────────────────────────────────── -->
+  <div id="loading" class="hidden">
+    <div class="spinner"></div>
+  </div>
 
-  const COLORS = ['#7c3aed','#06b6d4','#f59e0b','#10b981','#f43f5e','#8b5cf6','#14b8a6','#fb923c','#3b82f6','#ec4899'];
+  <!-- ── toast ──────────────────────────────────────────────── -->
+  <div id="toast"></div>
 
-  // ── elements ─────────────────────────────────────────────
-  const $url      = document.getElementById('inp-url');
-  const $key      = document.getElementById('inp-key');
-  const $dot      = document.getElementById('status-dot');
-  const $slabel   = document.getElementById('status-label');
-  const $tabs     = document.querySelectorAll('.tab');
-  const $findBar  = document.getElementById('find-bar');
-  const $query    = document.getElementById('inp-query');
-  const $case     = document.getElementById('inp-case');
-  const $conf     = document.getElementById('inp-conf');
-  const $runBtn   = document.getElementById('run-btn');
-  const $clearBtn = document.getElementById('clear-btn');
-  const $dropZone = document.getElementById('drop-zone');
-  const $fileInp  = document.getElementById('file-input');
-  const $cWrap    = document.getElementById('canvas-wrap');
-  const $canvas   = document.getElementById('overlay');
-  const ctx       = $canvas.getContext('2d');
-  const $list     = document.getElementById('results-list');
-  const $empty    = document.getElementById('empty-state');
-  const $count    = document.getElementById('det-count');
-  const $statsBar = document.getElementById('stats-bar');
-  const $time     = document.getElementById('stat-time');
-  const $device   = document.getElementById('stat-device');
-  const $size     = document.getElementById('stat-size');
-  const $loading  = document.getElementById('loading');
-  const $toast    = document.getElementById('toast');
+  <script>
+    (() => {
+      // ── state ────────────────────────────────────────────────
+      let mode = 'scan';
+      let imageFile = null;
+      let imageNW = 0, imageNH = 0;
+      let detections = [];
+      let highlightIdx = -1;
 
-  // ── toast ─────────────────────────────────────────────────
-  function toast(msg) {
-    $toast.textContent = msg;
-    $toast.classList.add('show');
-    setTimeout(() => $toast.classList.remove('show'), 2000);
-  }
+      const COLORS = ['#7c3aed', '#06b6d4', '#f59e0b', '#10b981', '#f43f5e', '#8b5cf6', '#14b8a6', '#fb923c', '#3b82f6', '#ec4899'];
 
-  // ── status probe ─────────────────────────────────────────
-  async function probe() {
-    const base = $url.value.replace(/\/$/, '');
-    try {
-      const headers = {};
-      if ($key.value) headers['X-Api-Key'] = $key.value;
-      const r = await fetch(`${base}/health`, { headers, signal: AbortSignal.timeout(3000) });
-      if (r.ok) {
-        const d = await r.json();
-        $dot.className = 'online';
-        $slabel.textContent = d.device ?? 'online';
-        return;
+      // ── elements ─────────────────────────────────────────────
+      const $url = document.getElementById('inp-url');
+      const $key = document.getElementById('inp-key');
+      const $dot = document.getElementById('status-dot');
+      const $slabel = document.getElementById('status-label');
+      const $tabs = document.querySelectorAll('.tab');
+      const $findBar = document.getElementById('find-bar');
+      const $query = document.getElementById('inp-query');
+      const $case = document.getElementById('inp-case');
+      const $conf = document.getElementById('inp-conf');
+      const $runBtn = document.getElementById('run-btn');
+      const $clearBtn = document.getElementById('clear-btn');
+      const $dropZone = document.getElementById('drop-zone');
+      const $fileInp = document.getElementById('file-input');
+      const $cWrap = document.getElementById('canvas-wrap');
+      const $canvas = document.getElementById('overlay');
+      const ctx = $canvas.getContext('2d');
+      const $list = document.getElementById('results-list');
+      const $empty = document.getElementById('empty-state');
+      const $count = document.getElementById('det-count');
+      const $statsBar = document.getElementById('stats-bar');
+      const $time = document.getElementById('stat-time');
+      const $device = document.getElementById('stat-device');
+      const $size = document.getElementById('stat-size');
+      const $loading = document.getElementById('loading');
+      const $toast = document.getElementById('toast');
+
+      // ── toast ─────────────────────────────────────────────────
+      function toast(msg) {
+        $toast.textContent = msg;
+        $toast.classList.add('show');
+        setTimeout(() => $toast.classList.remove('show'), 2000);
       }
-    } catch {}
-    $dot.className = 'offline';
-    $slabel.textContent = 'offline';
-  }
-  probe();
-  $url.addEventListener('change', probe);
-  $key.addEventListener('change', probe);
-  setInterval(probe, 10000);
 
-  // ── tabs ──────────────────────────────────────────────────
-  $tabs.forEach(tab => tab.addEventListener('click', () => {
-    mode = tab.dataset.mode;
-    $tabs.forEach(t => t.classList.toggle('active', t === tab));
-    $findBar.classList.toggle('hidden', mode !== 'find');
-  }));
+      // ── status probe ─────────────────────────────────────────
+      async function probe() {
+        const base = $url.value.replace(/\/$/, '');
+        try {
+          const headers = {};
+          if ($key.value) headers['X-Api-Key'] = $key.value;
+          const r = await fetch(`${base}/health`, { headers, signal: AbortSignal.timeout(3000) });
+          if (r.ok) {
+            const d = await r.json();
+            $dot.className = 'online';
+            $slabel.textContent = d.device ?? 'online';
+            return;
+          }
+        } catch { }
+        $dot.className = 'offline';
+        $slabel.textContent = 'offline';
+      }
+      probe();
+      $url.addEventListener('change', probe);
+      $key.addEventListener('change', probe);
+      setInterval(probe, 10000);
 
-  // ── file drop / pick ─────────────────────────────────────
-  $dropZone.addEventListener('click', () => $fileInp.click());
-  $fileInp.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+      // ── tabs ──────────────────────────────────────────────────
+      $tabs.forEach(tab => tab.addEventListener('click', () => {
+        mode = tab.dataset.mode;
+        $tabs.forEach(t => t.classList.toggle('active', t === tab));
+        $findBar.classList.toggle('hidden', mode !== 'find');
+      }));
 
-  $dropZone.addEventListener('dragover', e => { e.preventDefault(); $dropZone.classList.add('drag-over'); });
-  $dropZone.addEventListener('dragleave', () => $dropZone.classList.remove('drag-over'));
-  $dropZone.addEventListener('drop', e => {
-    e.preventDefault(); $dropZone.classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) loadFile(f);
-  });
+      // ── file drop / pick ─────────────────────────────────────
+      $dropZone.addEventListener('click', () => $fileInp.click());
+      $fileInp.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
 
-  function loadFile(file) {
-    imageFile = file;
-    $runBtn.disabled = false;
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      imageNW = img.naturalWidth; imageNH = img.naturalHeight;
-      $canvas.width  = img.naturalWidth;
-      $canvas.height = img.naturalHeight;
-      ctx.drawImage(img, 0, 0);
-      $dropZone.style.display = 'none';
-      $cWrap.classList.add('visible');
-      $size.textContent = `${imageNW}×${imageNH}`;
-      // clear old results
-      detections = [];
-      renderCards();
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
-  }
+      $dropZone.addEventListener('dragover', e => { e.preventDefault(); $dropZone.classList.add('drag-over'); });
+      $dropZone.addEventListener('dragleave', () => $dropZone.classList.remove('drag-over'));
+      $dropZone.addEventListener('drop', e => {
+        e.preventDefault(); $dropZone.classList.remove('drag-over');
+        const f = e.dataTransfer.files[0];
+        if (f && f.type.startsWith('image/')) loadFile(f);
+      });
 
-  // ── clear ─────────────────────────────────────────────────
-  $clearBtn.addEventListener('click', () => {
-    imageFile = null; detections = []; imageNW = 0; imageNH = 0;
-    $canvas.width = 0; $canvas.height = 0;
-    $cWrap.classList.remove('visible');
-    $dropZone.style.display = '';
-    $runBtn.disabled = true;
-    $fileInp.value = '';
-    renderCards();
-    $statsBar.classList.add('hidden');
-    $count.classList.add('hidden');
-  });
+      function loadFile(file) {
+        imageFile = file;
+        $runBtn.disabled = false;
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          imageNW = img.naturalWidth; imageNH = img.naturalHeight;
+          $canvas.width = img.naturalWidth;
+          $canvas.height = img.naturalHeight;
+          ctx.drawImage(img, 0, 0);
+          $dropZone.style.display = 'none';
+          $cWrap.classList.add('visible');
+          $size.textContent = `${imageNW}×${imageNH}`;
+          // clear old results
+          detections = [];
+          renderCards();
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+      }
 
-  // ── run ───────────────────────────────────────────────────
-  $runBtn.addEventListener('click', run);
-  document.addEventListener('keydown', e => { if (e.key === 'Enter' && imageFile) run(); });
+      // ── clear ─────────────────────────────────────────────────
+      $clearBtn.addEventListener('click', () => {
+        imageFile = null; detections = []; imageNW = 0; imageNH = 0;
+        $canvas.width = 0; $canvas.height = 0;
+        $cWrap.classList.remove('visible');
+        $dropZone.style.display = '';
+        $runBtn.disabled = true;
+        $fileInp.value = '';
+        renderCards();
+        $statsBar.classList.add('hidden');
+        $count.classList.add('hidden');
+      });
 
-  async function run() {
-    if (!imageFile) return;
-    $loading.classList.remove('hidden');
-    const base = $url.value.replace(/\/$/, '');
-    const headers = {};
-    if ($key.value) headers['X-Api-Key'] = $key.value;
+      // ── run ───────────────────────────────────────────────────
+      $runBtn.addEventListener('click', run);
+      document.addEventListener('keydown', e => { if (e.key === 'Enter' && imageFile) run(); });
 
-    const fd = new FormData();
-    fd.append('image', imageFile);
-    fd.append('confidence_threshold', $conf.value);
+      async function run() {
+        if (!imageFile) return;
+        $loading.classList.remove('hidden');
+        const base = $url.value.replace(/\/$/, '');
+        const headers = {};
+        if ($key.value) headers['X-Api-Key'] = $key.value;
 
-    let endpoint = '/ocr/upload';
-    if (mode === 'find') {
-      if (!$query.value.trim()) { toast('Enter text to find'); $loading.classList.add('hidden'); return; }
-      fd.append('query', $query.value.trim());
-      fd.append('case_sensitive', $case.checked);
-      endpoint = '/ocr/find/upload';
-    }
+        const fd = new FormData();
+        fd.append('image', imageFile);
+        fd.append('confidence_threshold', $conf.value);
 
-    try {
-      const r = await fetch(`${base}${endpoint}`, { method: 'POST', headers, body: fd });
-      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail ?? `HTTP ${r.status}`); }
-      const data = await r.json();
-      detections = data.detections;
-      $time.textContent   = `${data.processing_time_ms}ms`;
-      $device.textContent = data.device;
-      $size.textContent   = `${data.image_w}×${data.image_h}`;
-      $statsBar.classList.remove('hidden');
-      renderCards();
-      drawBoxes();
-      $dot.className = 'online'; $slabel.textContent = data.device;
-    } catch (err) {
-      toast(`Error: ${err.message}`);
-    } finally {
-      $loading.classList.add('hidden');
-    }
-  }
+        let endpoint = '/ocr/upload';
+        if (mode === 'find') {
+          if (!$query.value.trim()) { toast('Enter text to find'); $loading.classList.add('hidden'); return; }
+          fd.append('query', $query.value.trim());
+          fd.append('case_sensitive', $case.checked);
+          endpoint = '/ocr/find/upload';
+        }
 
-  // ── render cards ─────────────────────────────────────────
-  function renderCards() {
-    // clear non-empty-state children
-    [...$list.children].forEach(c => { if (c.id !== 'empty-state') c.remove(); });
+        try {
+          const r = await fetch(`${base}${endpoint}`, { method: 'POST', headers, body: fd });
+          if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail ?? `HTTP ${r.status}`); }
+          const data = await r.json();
+          detections = data.detections;
+          $time.textContent = `${data.processing_time_ms}ms`;
+          $device.textContent = data.device;
+          $size.textContent = `${data.image_w}×${data.image_h}`;
+          $statsBar.classList.remove('hidden');
+          renderCards();
+          drawBoxes();
+          $dot.className = 'online'; $slabel.textContent = data.device;
+        } catch (err) {
+          toast(`Error: ${err.message}`);
+        } finally {
+          $loading.classList.add('hidden');
+        }
+      }
 
-    if (!detections.length) {
-      $empty.classList.remove('hidden');
-      $count.classList.add('hidden');
-      return;
-    }
-    $empty.classList.add('hidden');
-    $count.textContent = detections.length;
-    $count.classList.remove('hidden');
+      // ── render cards ─────────────────────────────────────────
+      function renderCards() {
+        // clear non-empty-state children
+        [...$list.children].forEach(c => { if (c.id !== 'empty-state') c.remove(); });
 
-    detections.forEach((d, i) => {
-      const color = COLORS[i % COLORS.length];
-      const conf  = Math.round(d.confidence * 100);
-      const confClass = conf >= 80 ? 'conf-high' : conf >= 50 ? 'conf-mid' : 'conf-low';
-      const adbCmd = `adb shell input tap ${d.tap_x} ${d.tap_y}`;
+        if (!detections.length) {
+          $empty.classList.remove('hidden');
+          $count.classList.add('hidden');
+          return;
+        }
+        $empty.classList.add('hidden');
+        $count.textContent = detections.length;
+        $count.classList.remove('hidden');
 
-      const card = document.createElement('div');
-      card.className = 'det-card';
-      card.dataset.idx = i;
-      card.innerHTML = `
+        detections.forEach((d, i) => {
+          const color = COLORS[i % COLORS.length];
+          const conf = Math.round(d.confidence * 100);
+          const confClass = conf >= 80 ? 'conf-high' : conf >= 50 ? 'conf-mid' : 'conf-low';
+          const adbCmd = `adb shell input tap ${d.tap_x} ${d.tap_y}`;
+
+          const card = document.createElement('div');
+          card.className = 'det-card';
+          card.dataset.idx = i;
+          card.innerHTML = `
         <div class="det-top">
-          <div class="det-idx" style="background:${color}22;color:${color}">${i+1}</div>
+          <div class="det-idx" style="background:${color}22;color:${color}">${i + 1}</div>
           <div class="det-text">${escHtml(d.text)}</div>
           <span class="conf-pill ${confClass}">${conf}%</span>
         </div>
@@ -425,84 +919,85 @@
           <span>(${d.bbox.x1}, ${d.bbox.y1}) → (${d.bbox.x2}, ${d.bbox.y2})</span>
         </div>`;
 
-      card.addEventListener('mouseenter', () => setHighlight(i));
-      card.addEventListener('mouseleave', () => setHighlight(-1));
-      card.querySelector('.btn-copy').addEventListener('click', e => {
-        e.stopPropagation();
-        const btn = e.currentTarget;
-        navigator.clipboard.writeText(btn.dataset.cmd).then(() => {
-          btn.textContent = '✓ Copied'; btn.classList.add('copied');
-          setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+          card.addEventListener('mouseenter', () => setHighlight(i));
+          card.addEventListener('mouseleave', () => setHighlight(-1));
+          card.querySelector('.btn-copy').addEventListener('click', e => {
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            navigator.clipboard.writeText(btn.dataset.cmd).then(() => {
+              btn.textContent = '✓ Copied'; btn.classList.add('copied');
+              setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+            });
+          });
+
+          $list.appendChild(card);
         });
-      });
-
-      $list.appendChild(card);
-    });
-  }
-
-  // ── highlight sync ────────────────────────────────────────
-  function setHighlight(idx) {
-    highlightIdx = idx;
-    document.querySelectorAll('.det-card').forEach((c, i) => c.classList.toggle('highlighted', i === idx));
-    drawBoxes();
-  }
-
-  // ── canvas drawing ────────────────────────────────────────
-  function drawBoxes() {
-    if (!imageFile || !imageNW) return;
-    // redraw base image
-    const img = new Image();
-    const url = URL.createObjectURL(imageFile);
-    img.onload = () => {
-      ctx.clearRect(0, 0, $canvas.width, $canvas.height);
-      ctx.drawImage(img, 0, 0);
-
-      // dim overlay when hovering one
-      if (highlightIdx >= 0) {
-        ctx.fillStyle = 'rgba(0,0,0,0.45)';
-        ctx.fillRect(0, 0, $canvas.width, $canvas.height);
       }
 
-      detections.forEach((d, i) => {
-        const color = COLORS[i % COLORS.length];
-        const {x1, y1, x2, y2} = d.bbox;
-        const w = x2 - x1, h = y2 - y1;
-        const isHi = highlightIdx === i || highlightIdx < 0;
-        const alpha = isHi ? 1 : 0.25;
+      // ── highlight sync ────────────────────────────────────────
+      function setHighlight(idx) {
+        highlightIdx = idx;
+        document.querySelectorAll('.det-card').forEach((c, i) => c.classList.toggle('highlighted', i === idx));
+        drawBoxes();
+      }
 
-        ctx.globalAlpha = alpha;
-        // filled rect
-        ctx.fillStyle = color + '28';
-        ctx.fillRect(x1, y1, w, h);
-        // border
-        ctx.strokeStyle = color;
-        ctx.lineWidth = isHi ? 2.5 : 1.5;
-        ctx.strokeRect(x1, y1, w, h);
-        // label pill
-        const label = `${i+1} ${d.text}`;
-        ctx.font = 'bold 12px system-ui';
-        const tw = ctx.measureText(label).width;
-        const lh = 18, lpad = 6;
-        const lx = x1, ly = y1 > lh ? y1 - lh : y1 + h;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.roundRect(lx, ly, tw + lpad*2, lh, 4);
-        ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.globalAlpha = isHi ? 1 : 0.3;
-        ctx.fillText(label, lx + lpad, ly + 13);
-        ctx.globalAlpha = 1;
-      });
+      // ── canvas drawing ────────────────────────────────────────
+      function drawBoxes() {
+        if (!imageFile || !imageNW) return;
+        // redraw base image
+        const img = new Image();
+        const url = URL.createObjectURL(imageFile);
+        img.onload = () => {
+          ctx.clearRect(0, 0, $canvas.width, $canvas.height);
+          ctx.drawImage(img, 0, 0);
 
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
-  }
+          // dim overlay when hovering one
+          if (highlightIdx >= 0) {
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.fillRect(0, 0, $canvas.width, $canvas.height);
+          }
 
-  // ── utils ─────────────────────────────────────────────────
-  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function escAttr(s) { return s.replace(/"/g,'&quot;'); }
-})();
-</script>
+          detections.forEach((d, i) => {
+            const color = COLORS[i % COLORS.length];
+            const { x1, y1, x2, y2 } = d.bbox;
+            const w = x2 - x1, h = y2 - y1;
+            const isHi = highlightIdx === i || highlightIdx < 0;
+            const alpha = isHi ? 1 : 0.25;
+
+            ctx.globalAlpha = alpha;
+            // filled rect
+            ctx.fillStyle = color + '28';
+            ctx.fillRect(x1, y1, w, h);
+            // border
+            ctx.strokeStyle = color;
+            ctx.lineWidth = isHi ? 2.5 : 1.5;
+            ctx.strokeRect(x1, y1, w, h);
+            // label pill
+            const label = `${i + 1} ${d.text}`;
+            ctx.font = 'bold 12px system-ui';
+            const tw = ctx.measureText(label).width;
+            const lh = 18, lpad = 6;
+            const lx = x1, ly = y1 > lh ? y1 - lh : y1 + h;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.roundRect(lx, ly, tw + lpad * 2, lh, 4);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = isHi ? 1 : 0.3;
+            ctx.fillText(label, lx + lpad, ly + 13);
+            ctx.globalAlpha = 1;
+          });
+
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+      }
+
+      // ── utils ─────────────────────────────────────────────────
+      function escHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+      function escAttr(s) { return s.replace(/"/g, '&quot;'); }
+    })();
+  </script>
 </body>
+
 </html>

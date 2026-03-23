@@ -141,7 +141,7 @@ def _to_response(result: OCRResult) -> OCRResponse:
 def _check_size(data: bytes, max_bytes: int):
     if len(data) > max_bytes:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=f"Image exceeds {max_bytes // 1024 // 1024} MB limit",
         )
 

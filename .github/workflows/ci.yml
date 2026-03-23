@@ -72,3 +72,32 @@ jobs:
         with:
           dockerfile: Dockerfile
           ignore: DL3008,DL3013    # allow apt/pip without pinning in base layer
+
+  # ── Unit & integration tests ───────────────────────────────────────────────
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install test dependencies
+        # requirements-test.txt intentionally excludes torch/easyocr.
+        # Both are mocked in tests/conftest.py so CI never needs a GPU build.
+        run: pip install -r requirements-test.txt
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Upload coverage (optional)
+        if: matrix.python-version == '3.11'
+        run: |
+          pip install pytest-cov --quiet
+          pytest tests/ --cov=. --cov-report=term-missing --tb=short

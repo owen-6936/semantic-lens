@@ -1,8 +1,11 @@
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 
 class Settings(BaseSettings):
+    model_config = ConfigDict(env_file=".env")
+
     host: str = "0.0.0.0"
     port: int = 8000
     workers: int = 1
@@ -21,9 +24,6 @@ class Settings(BaseSettings):
     # Tunnel — read by start.sh, not used by the server itself
     ngrok_domain: str = ""
     cf_tunnel: str = ""
-
-    class Config:
-        env_file = ".env"
 
     @property
     def language_list(self) -> list[str]:
