@@ -22,7 +22,8 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from config import Settings, get_settings
@@ -50,6 +51,15 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Serve the web UI at /ui  (no auth — UI handles the key itself via JS)
+_static = Path(__file__).parent / "static"
+if _static.exists():
+    app.mount("/ui", StaticFiles(directory=_static, html=True), name="ui")
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse("/ui/")
 
 
 # ---------------------------------------------------------------------------
