@@ -1,0 +1,32 @@
+services:
+  ocr:
+    build: .
+    image: semantic-lens:latest
+    restart: unless-stopped
+
+    ports:
+      - "${PORT:-8000}:8000"
+
+    env_file: .env
+
+    # EasyOCR model cache — persisted between container restarts and rebuilds.
+    # First run will download ~150 MB of model files into this volume.
+    volumes:
+      - easyocr_models:/root/.EasyOCR
+
+    # ── GPU passthrough ─────────────────────────────────────────────────────
+    # Requires: nvidia-container-toolkit on the host
+    #   Linux:   https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+    #   Windows: Docker Desktop with WSL2 backend supports this natively
+    #
+    # To run CPU-only: comment out or remove the deploy section below.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  easyocr_models:

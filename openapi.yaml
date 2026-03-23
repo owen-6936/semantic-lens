@@ -1,0 +1,302 @@
+openapi: 3.1.0
+info:
+  title: OCR Server
+  description: >
+    Low-latency OCR HTTP server for gaming automation.
+    Returns detected text with bounding-box coordinates and ADB-ready tap_x/tap_y fields.
+    GPU-accelerated (CUDA / Blackwell-ready) with automatic CPU fallback.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+    description: Localhost (default)
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+      description: >
+        Set API_KEY in .env to enable. Leave API_KEY empty to disable authentication.
+
+  schemas:
+    BBox:
+      type: object
+      description: Bounding box of a detected text region in image pixel coordinates.
+      required: [x1, y1, x2, y2, center_x, center_y, width, height]
+      properties:
+        x1: { type: integer, description: Left edge }
+        y1: { type: integer, description: Top edge }
+        x2: { type: integer, description: Right edge }
+        y2: { type: integer, description: Bottom edge }
+        center_x:
+          { type: integer, description: Horizontal center — use for ADB tap X }
+        center_y:
+          { type: integer, description: Vertical center — use for ADB tap Y }
+        width: { type: integer }
+        height: { type: integer }
+
+    Detection:
+      type: object
+      required: [text, confidence, bbox, tap_x, tap_y]
+      properties:
+        text:
+          type: string
+          description: Detected text string.
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Model confidence score.
+        bbox:
+          $ref: "#/components/schemas/BBox"
+        tap_x:
+          type: integer
+          description: "Shorthand for bbox.center_x. Use directly: adb shell input tap <tap_x> <tap_y>"
+        tap_y:
+          type: integer
+          description: "Shorthand for bbox.center_y."
+
+    OCRResponse:
+      type: object
+      required:
+        [detections, count, processing_time_ms, device, image_w, image_h]
+      properties:
+        detections:
+          type: array
+          items:
+            $ref: "#/components/schemas/Detection"
+        count:
+          type: integer
+          description: Number of detections returned.
+        processing_time_ms:
+          type: number
+          format: float
+          description: OCR inference time in milliseconds (excludes network/decode overhead).
+        device:
+          type: string
+          example: cuda:0
+          description: Compute device used for this request.
+        image_w:
+          type: integer
+          description: Input image width in pixels.
+        image_h:
+          type: integer
+          description: Input image height in pixels.
+
+    HealthResponse:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+        device: { type: string, example: cuda:0 }
+
+    InfoResponse:
+      type: object
+      properties:
+        device: { type: string, example: cuda:0 }
+        gpu_name: { type: string, example: "NVIDIA GeForce RTX 5090" }
+        compute_capability: { type: string, example: "10.0" }
+        vram_total_mb: { type: integer, example: 32768 }
+
+    ErrorDetail:
+      type: object
+      properties:
+        detail: { type: string }
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Returns server status and the active compute device.
+      tags: [meta]
+      security: [{ ApiKeyAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthResponse" }
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorDetail" }
+
+  /info:
+    get:
+      summary: Device info
+      description: Returns GPU name, compute capability (SM version), and total VRAM. CPU-only servers omit GPU fields.
+      tags: [meta]
+      security: [{ ApiKeyAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InfoResponse" }
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorDetail" }
+
+  /ocr/upload:
+    post:
+      summary: Full OCR — multipart upload
+      description: >
+        Accepts a raw image file (PNG, JPEG, BMP, WebP) via multipart/form-data.
+        Returns all detected text regions with bounding boxes and tap coordinates.
+        Preferred over the JSON endpoint — avoids base64 encoding overhead.
+      tags: [ocr]
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Image file to process.
+                confidence_threshold:
+                  type: number
+                  format: float
+                  default: 0.4
+                  minimum: 0
+                  maximum: 1
+                  description: Minimum confidence to include a detection.
+      responses:
+        "200":
+          description: OCR results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OCRResponse" }
+        "401": { description: Invalid API key }
+        "413": { description: Image exceeds size limit }
+
+  /ocr/find/upload:
+    post:
+      summary: Find text — multipart upload
+      description: >
+        Runs full OCR then filters detections whose text contains the query string.
+        Returns only matching detections. Ideal for locating a specific button or label.
+      tags: [ocr]
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image, query]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                query:
+                  type: string
+                  description: Substring to find in detected text.
+                confidence_threshold:
+                  type: number
+                  format: float
+                  default: 0.4
+                case_sensitive:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: Matching detections
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OCRResponse" }
+        "401": { description: Invalid API key }
+        "413": { description: Image exceeds size limit }
+
+  /ocr:
+    post:
+      summary: Full OCR — JSON / base64
+      description: >
+        Accepts a base64-encoded image in a JSON body.
+        Data-URI prefix (data:image/png;base64,...) is accepted and stripped automatically.
+        Use /ocr/upload when possible — base64 adds ~33% payload overhead.
+      tags: [ocr]
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  description: Base64-encoded image. Data-URI prefix optional.
+                confidence_threshold:
+                  type: number
+                  format: float
+                  default: 0.4
+                  minimum: 0
+                  maximum: 1
+            example:
+              image: "iVBORw0KGgoAAAANSUhEUgAA..."
+              confidence_threshold: 0.5
+      responses:
+        "200":
+          description: OCR results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OCRResponse" }
+        "401": { description: Invalid API key }
+        "413": { description: Image exceeds size limit }
+
+  /ocr/find:
+    post:
+      summary: Find text — JSON / base64
+      description: >
+        Runs OCR and returns only detections matching the query string.
+        Accepts base64 image in JSON body.
+      tags: [ocr]
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image, query]
+              properties:
+                image:
+                  type: string
+                  description: Base64-encoded image.
+                query:
+                  type: string
+                  description: Text substring to find.
+                confidence_threshold:
+                  type: number
+                  format: float
+                  default: 0.4
+                case_sensitive:
+                  type: boolean
+                  default: false
+            example:
+              image: "iVBORw0KGgoAAAANSUhEUgAA..."
+              query: "Start"
+              confidence_threshold: 0.4
+              case_sensitive: false
+      responses:
+        "200":
+          description: Matching detections
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OCRResponse" }
+        "401": { description: Invalid API key }
+        "413": { description: Image exceeds size limit }

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment / secrets — keep .env.example, never commit .env
+.env
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# PyTorch / model cache — stored outside project in ~/.EasyOCR
+# but just in case anyone puts it here
+*.pth
+*.pt

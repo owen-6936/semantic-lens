@@ -1,0 +1,116 @@
+# OCR Server — API reference for LLMs
+
+Low-latency OCR HTTP server. Accepts images, returns detected text with pixel coordinates.
+Use `tap_x` / `tap_y` directly with `adb shell input tap <tap_x> <tap_y>`.
+
+## Authentication
+
+Optional. If enabled, every request must include:
+```
+X-Api-Key: <key>
+```
+If `API_KEY` is empty in server config, no key is required.
+
+## Base URL
+
+Configurable. Default: `http://localhost:8000`
+
+---
+
+## Endpoints
+
+### GET /health
+No body. Returns `{ "status": "ok", "device": "cuda:0" }`.
+
+### GET /info
+No body. Returns GPU name, SM compute capability, and VRAM in MB.
+CPU-only servers omit GPU fields.
+
+---
+
+### POST /ocr/upload  ← preferred for low latency
+Multipart form. Runs full OCR, returns all detections.
+
+Fields:
+- `image` (file, required) — PNG / JPEG / BMP / WebP
+- `confidence_threshold` (float, default 0.4) — 0.0–1.0
+
+### POST /ocr/find/upload  ← preferred for ADB automation
+Multipart form. Finds a specific text string and returns its coordinates.
+
+Fields:
+- `image` (file, required)
+- `query` (string, required) — substring to match
+- `confidence_threshold` (float, default 0.4)
+- `case_sensitive` (bool, default false)
+
+### POST /ocr
+JSON body. Same as /ocr/upload but image is base64-encoded.
+
+```json
+{ "image": "<base64>", "confidence_threshold": 0.4 }
+```
+
+### POST /ocr/find
+JSON body. Same as /ocr/find/upload but image is base64-encoded.
+
+```json
+{ "image": "<base64>", "query": "OK", "confidence_threshold": 0.4, "case_sensitive": false }
+```
+
+---
+
+## Response (all OCR endpoints)
+
+```json
+{
+  "detections": [
+    {
+      "text": "Battle",
+      "confidence": 0.9731,
+      "tap_x": 540,
+      "tap_y": 1205,
+      "bbox": {
+        "x1": 440, "y1": 1185, "x2": 640, "y2": 1225,
+        "center_x": 540, "center_y": 1205,
+        "width": 200, "height": 40
+      }
+    }
+  ],
+  "count": 1,
+  "processing_time_ms": 38.7,
+  "device": "cuda:0",
+  "image_w": 1080,
+  "image_h": 1920
+}
+```
+
+Key fields:
+- `tap_x`, `tap_y` — center of the detected text region; pass to `adb shell input tap`
+- `bbox.x1/y1/x2/y2` — corners in pixel coordinates (top-left origin)
+- `processing_time_ms` — inference time only, excludes network and decode
+- `device` — `cuda:0` or `cpu`
+
+---
+
+## ADB tap example
+
+```bash
+# screenshot → find button → tap
+adb exec-out screencap -p > screen.png
+RESP=$(curl -s -X POST $BASE_URL/ocr/find/upload \
+  -H "X-Api-Key: $KEY" \
+  -F "image=@screen.png" -F "query=Battle")
+X=$(echo $RESP | python3 -c "import sys,json; print(json.load(sys.stdin)['detections'][0]['tap_x'])")
+Y=$(echo $RESP | python3 -c "import sys,json; print(json.load(sys.stdin)['detections'][0]['tap_y'])")
+adb shell input tap $X $Y
+```
+
+---
+
+## Notes
+
+- Model is loaded once at startup; subsequent requests hit the warm model only.
+- `/ocr/upload` is faster than `/ocr` because it skips base64 decode.
+- When `count` is 0 on a `/find` request, the text was not found in the image.
+- Full OpenAPI spec: GET /openapi.json (JSON) or GET /spec (YAML)

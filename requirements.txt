@@ -1,0 +1,26 @@
+# ── Core server ──────────────────────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+python-multipart>=0.0.9   # required for FastAPI File/Form uploads
+pyyaml>=6.0.0             # for /spec YAML endpoint
+
+# ── OCR ──────────────────────────────────────────────────────────────────────
+easyocr>=1.7.2
+Pillow>=10.0.0
+numpy>=1.26.0
+
+# ── PyTorch — choose ONE block below and comment the others ──────────────────
+#
+# --- Option A: Blackwell (RTX 50xx) — CUDA 12.8, PyTorch 2.7 nightly -------
+# Install separately BEFORE pip install -r requirements.txt:
+#   pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+#
+# --- Option B: Ampere / Ada (RTX 30/40xx) — CUDA 12.4, stable PyTorch 2.6 --
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+#
+# --- Option C: CPU only ------------------------------------------------------
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#
+# torch and torchvision are NOT listed here so you can choose the right variant.
