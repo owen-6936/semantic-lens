@@ -22,7 +22,12 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.responses import (
+    FileResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    Response,
+)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -57,6 +62,7 @@ _static = Path(__file__).parent / "static"
 if _static.exists():
     app.mount("/ui", StaticFiles(directory=_static, html=True), name="ui")
 
+
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse("/ui/")
@@ -66,6 +72,7 @@ async def root():
 # Auth dependency
 # ---------------------------------------------------------------------------
 
+
 def require_api_key(
     x_api_key: Annotated[Optional[str], Header()] = None,
     settings: Settings = Depends(get_settings),
@@ -73,7 +80,9 @@ def require_api_key(
     if not settings.api_key:
         return  # auth disabled
     if x_api_key != settings.api_key:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
+        )
 
 
 AuthDep = Annotated[None, Depends(require_api_key)]
@@ -82,6 +91,7 @@ AuthDep = Annotated[None, Depends(require_api_key)]
 # ---------------------------------------------------------------------------
 # Response schema
 # ---------------------------------------------------------------------------
+
 
 class BBoxOut(BaseModel):
     x1: int
@@ -138,6 +148,7 @@ def _to_response(result: OCRResult) -> OCRResponse:
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _check_size(data: bytes, max_bytes: int):
     if len(data) > max_bytes:
         raise HTTPException(
@@ -150,8 +161,11 @@ def _check_size(data: bytes, max_bytes: int):
 # JSON body schemas
 # ---------------------------------------------------------------------------
 
+
 class OCRJsonRequest(BaseModel):
-    image: str = Field(..., description="Base64-encoded image (with or without data-URI prefix)")
+    image: str = Field(
+        ..., description="Base64-encoded image (with or without data-URI prefix)"
+    )
     confidence_threshold: float = Field(0.4, ge=0.0, le=1.0)
 
 
@@ -165,6 +179,7 @@ class FindJsonRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints — info / health
 # ---------------------------------------------------------------------------
+
 
 @app.get("/health", tags=["meta"])
 async def health(_: AuthDep):
@@ -205,6 +220,7 @@ async def openapi_yaml():
 # Endpoints — multipart (fastest, no base64 overhead)
 # ---------------------------------------------------------------------------
 
+
 @app.post("/ocr/upload", response_model=OCRResponse, tags=["ocr"])
 async def ocr_upload(
     _: AuthDep,
@@ -241,6 +257,7 @@ async def find_upload(
 # Endpoints — JSON / base64 (handy for scripting)
 # ---------------------------------------------------------------------------
 
+
 @app.post("/ocr", response_model=OCRResponse, tags=["ocr"])
 async def ocr_json(
     body: OCRJsonRequest,
@@ -271,7 +288,9 @@ async def find_json(
     data = base64.b64decode(raw)
     _check_size(data, settings.max_image_bytes)
     img = OCREngine.from_bytes(data)
-    result = _engine.find(img, body.query, body.confidence_threshold, body.case_sensitive)
+    result = _engine.find(
+        img, body.query, body.confidence_threshold, body.case_sensitive
+    )
     return _to_response(result)
 
 

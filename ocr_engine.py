@@ -25,6 +25,7 @@ from PIL import Image
 # which has no resume support and fails on large files over slow connections.
 # ---------------------------------------------------------------------------
 
+
 def _resumable_download_and_unzip(
     url: str, filename: str, model_storage_directory: str, verbose: bool = True
 ) -> None:
@@ -70,6 +71,7 @@ def _resumable_download_and_unzip(
 # Data types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class BBox:
     x1: int
@@ -102,11 +104,14 @@ class OCRResult:
 # Engine
 # ---------------------------------------------------------------------------
 
+
 class OCREngine:
     def __init__(self, languages: list[str], prefer_gpu: bool = True):
         self.device, self._use_gpu = self._detect_device(prefer_gpu)
         print(f"[OCR] Using device: {self.device}")
-        print(f"[OCR] Loading EasyOCR ({', '.join(languages)}) — this may take a moment on first run ...")
+        print(
+            f"[OCR] Loading EasyOCR ({', '.join(languages)}) — this may take a moment on first run ..."
+        )
         self.reader = self._load_reader(languages)
         print("[OCR] Ready.")
 
@@ -132,17 +137,22 @@ class OCREngine:
             ys = [int(p[1]) for p in bbox_pts]
             x1, y1 = min(xs), min(ys)
             x2, y2 = max(xs), max(ys)
-            detections.append(Detection(
-                text=text,
-                confidence=round(float(conf), 4),
-                bbox=BBox(
-                    x1=x1, y1=y1, x2=x2, y2=y2,
-                    center_x=(x1 + x2) // 2,
-                    center_y=(y1 + y2) // 2,
-                    width=x2 - x1,
-                    height=y2 - y1,
-                ),
-            ))
+            detections.append(
+                Detection(
+                    text=text,
+                    confidence=round(float(conf), 4),
+                    bbox=BBox(
+                        x1=x1,
+                        y1=y1,
+                        x2=x2,
+                        y2=y2,
+                        center_x=(x1 + x2) // 2,
+                        center_y=(y1 + y2) // 2,
+                        width=x2 - x1,
+                        height=y2 - y1,
+                    ),
+                )
+            )
 
         return OCRResult(
             detections=detections,
@@ -163,7 +173,8 @@ class OCREngine:
         result = self.run(image, confidence_threshold)
         needle = query if case_sensitive else query.lower()
         result.detections = [
-            d for d in result.detections
+            d
+            for d in result.detections
             if needle in (d.text if case_sensitive else d.text.lower())
         ]
         return result
@@ -193,6 +204,7 @@ class OCREngine:
         # supports resume (-c / -C -) so interrupted downloads pick up where
         # they left off instead of failing after 70+ MB.
         import easyocr.utils as _eu
+
         _eu.download_and_unzip = _resumable_download_and_unzip
         return easyocr.Reader(languages, gpu=self._use_gpu, verbose=False)
 
@@ -203,7 +215,9 @@ class OCREngine:
             major, minor = torch.cuda.get_device_capability(0)
             print(f"[OCR] GPU: {name}  (SM {major}.{minor})")
             if major >= 10:
-                print("[OCR] Blackwell architecture detected — ensure CUDA 12.8+ and PyTorch 2.7+")
+                print(
+                    "[OCR] Blackwell architecture detected — ensure CUDA 12.8+ and PyTorch 2.7+"
+                )
             return "cuda:0", True
         if prefer_gpu:
             print("[OCR] CUDA not available — falling back to CPU")
@@ -217,6 +231,6 @@ class OCREngine:
             major, minor = torch.cuda.get_device_capability(0)
             info["compute_capability"] = f"{major}.{minor}"
             info["vram_total_mb"] = round(
-                torch.cuda.get_device_properties(0).total_memory / 1024 ** 2
+                torch.cuda.get_device_properties(0).total_memory / 1024**2
             )
         return info
