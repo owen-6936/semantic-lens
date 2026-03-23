@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ── Python lint & syntax ───────────────────────────────────────────────────
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Format check
+        run: ruff format --check .
+
+  # ── Python syntax (no torch needed) ───────────────────────────────────────
+  syntax:
+    name: Syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile all Python files
+        run: |
+          for f in *.py; do
+            echo "Checking $f ..."
+            python -m py_compile "$f"
+          done
+
+  # ── YAML / OpenAPI validation ──────────────────────────────────────────────
+  validate-yaml:
+    name: Validate YAML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Lint openapi.yaml
+        run: yamllint -d "{extends: relaxed, rules: {line-length: {max: 120}}}" openapi.yaml
+
+      - name: Lint compose.yml
+        run: yamllint -d "{extends: relaxed, rules: {line-length: {max: 120}}}" compose.yml
+
+  # ── Dockerfile lint ────────────────────────────────────────────────────────
+  dockerfile:
+    name: Dockerfile lint (hadolint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          ignore: DL3008,DL3013    # allow apt/pip without pinning in base layer
+
+  # ── Unit & integration tests ───────────────────────────────────────────────
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install test dependencies
+        # requirements-test.txt intentionally excludes torch/easyocr.
+        # Both are mocked in tests/conftest.py so CI never needs a GPU build.
+        run: pip install -r requirements-test.txt
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Upload coverage (optional)
+        if: matrix.python-version == '3.11'
+        run: |
+          pip install pytest-cov --quiet
+          pytest tests/ --cov=. --cov-report=term-missing --tb=short

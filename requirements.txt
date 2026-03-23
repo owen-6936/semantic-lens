@@ -4,6 +4,7 @@ uvicorn[standard]>=0.30.0
 pydantic>=2.7.0
 pydantic-settings>=2.3.0
 python-multipart>=0.0.9   # required for FastAPI File/Form uploads
+aiofiles>=23.0.0          # required for FastAPI StaticFiles
 pyyaml>=6.0.0             # for /spec YAML endpoint
 
 # ── OCR ──────────────────────────────────────────────────────────────────────

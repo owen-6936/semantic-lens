@@ -279,6 +279,33 @@ Full list: [EasyOCR supported languages](https://www.jaided.ai/easyocr/)
 
 ---
 
+## Testing
+
+The test suite runs without a GPU and without downloading any models — heavy dependencies (`torch`, `easyocr`) are mocked via `tests/conftest.py`.
+
+```bash
+# Install test dependencies (no torch required)
+pip install -r requirements-test.txt
+
+# Run all tests
+pytest tests/ -v
+
+# With coverage report
+pytest tests/ --cov=. --cov-report=term-missing
+```
+
+**Test coverage:**
+
+| File | What is tested |
+|------|---------------|
+| `tests/test_config.py` | `Settings` defaults, env-var overrides, `language_list` parsing |
+| `tests/test_ocr_engine.py` | `BBox`, `Detection`, `OCRResult` dataclasses; `from_bytes` / `from_base64` image helpers |
+| `tests/test_server.py` | All HTTP endpoints, auth enforcement, 413 size limit, ADB coord presence, find-method routing |
+
+CI runs the suite on Python 3.11 and 3.12 for every push/PR (see `.github/workflows/ci.yml`).
+
+---
+
 ## Misc
 
 - `GET /robots.txt` — disallows all crawlers
