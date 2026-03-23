@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     # OCR
     languages: str = "en"  # comma-separated: "en,ch_sim"
-    gpu: bool = True        # attempt CUDA, falls back to CPU automatically
+    gpu: bool = True  # attempt CUDA, falls back to CPU automatically
 
     # Security — leave empty to disable auth
     api_key: str = ""
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     @property
     def language_list(self) -> list[str]:
-        return [l.strip() for l in self.languages.split(",") if l.strip()]
+        return [lang.strip() for lang in self.languages.split(",") if lang.strip()]
 
 
 @lru_cache

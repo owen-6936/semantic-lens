@@ -1,4 +1,5 @@
 """Tests for server.py — all HTTP endpoints."""
+
 import base64
 import io
 import pytest
@@ -15,6 +16,7 @@ from config import Settings, get_settings
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _make_png(w: int = 10, h: int = 10) -> bytes:
     """Return a minimal RGB PNG as raw bytes (no disk I/O)."""
     img = Image.new("RGB", (w, h), color=(100, 150, 200))
@@ -29,9 +31,14 @@ def _make_result(text: str = "OK", count: int = 1) -> OCRResult:
             text=text,
             confidence=0.95,
             bbox=BBox(
-                x1=10, y1=10, x2=110, y2=40,
-                center_x=60, center_y=25,
-                width=100, height=30,
+                x1=10,
+                y1=10,
+                x2=110,
+                y2=40,
+                center_x=60,
+                center_y=25,
+                width=100,
+                height=30,
             ),
         )
         for _ in range(count)
@@ -50,6 +57,7 @@ def _b64(data: bytes) -> str:
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def engine(monkeypatch):
@@ -72,10 +80,12 @@ def client():
 @pytest.fixture()
 def authed_client(monkeypatch):
     """Client + settings override requiring X-Api-Key: testkey."""
+
     def _settings():
         s = Settings()
         s.api_key = "testkey"
         return s
+
     app.dependency_overrides[get_settings] = _settings
     c = TestClient(app, raise_server_exceptions=True)
     yield c
@@ -84,6 +94,7 @@ def authed_client(monkeypatch):
 
 # ── root / redirect ───────────────────────────────────────────────────────────
 
+
 def test_root_redirects_to_ui(client, engine):
     r = client.get("/", follow_redirects=False)
     assert r.status_code == 307
@@ -91,6 +102,7 @@ def test_root_redirects_to_ui(client, engine):
 
 
 # ── meta endpoints ────────────────────────────────────────────────────────────
+
 
 def test_health_returns_ok(client, engine):
     r = client.get("/health")
@@ -128,6 +140,7 @@ def test_llms_txt_returns_text(client, engine):
 
 # ── auth ──────────────────────────────────────────────────────────────────────
 
+
 def test_health_no_auth_when_disabled(client, engine):
     """When API_KEY is empty auth is disabled — no key required."""
     r = client.get("/health")
@@ -150,11 +163,14 @@ def test_health_missing_key_rejected(authed_client, engine):
 
 
 def test_ocr_upload_requires_key(authed_client, engine):
-    r = authed_client.post("/ocr/upload", files={"image": ("x.png", _make_png(), "image/png")})
+    r = authed_client.post(
+        "/ocr/upload", files={"image": ("x.png", _make_png(), "image/png")}
+    )
     assert r.status_code == 401
 
 
 # ── POST /ocr/upload ──────────────────────────────────────────────────────────
+
 
 def test_ocr_upload_returns_detections(client, engine):
     r = client.post(
@@ -199,6 +215,7 @@ def test_ocr_upload_too_large_rejected(client, engine, monkeypatch):
         s = Settings()
         s.max_image_bytes = 5  # 5 bytes
         return s
+
     app.dependency_overrides[get_settings] = _small_limit
     r = client.post("/ocr/upload", files={"image": ("x.png", _make_png(), "image/png")})
     app.dependency_overrides.clear()
@@ -206,6 +223,7 @@ def test_ocr_upload_too_large_rejected(client, engine, monkeypatch):
 
 
 # ── POST /ocr (JSON / base64) ─────────────────────────────────────────────────
+
 
 def test_ocr_json_returns_detections(client, engine):
     r = client.post(
@@ -223,6 +241,7 @@ def test_ocr_json_strips_data_uri_prefix(client, engine):
 
 
 # ── POST /ocr/find/upload ─────────────────────────────────────────────────────
+
 
 def test_find_upload_returns_detections(client, engine):
     r = client.post(
@@ -246,6 +265,7 @@ def test_find_upload_calls_find_method(client, engine):
 
 
 # ── POST /ocr/find (JSON) ─────────────────────────────────────────────────────
+
 
 def test_find_json_returns_detections(client, engine):
     r = client.post(

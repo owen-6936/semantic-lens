@@ -1,5 +1,5 @@
 """Tests for config.py — Settings and helpers."""
-import os
+
 import pytest
 from config import Settings
 

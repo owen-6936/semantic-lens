@@ -3,6 +3,7 @@
 OCREngine.__init__ is NOT tested here (requires real EasyOCR/torch).
 We test the pure-Python components that run in CI without GPU deps.
 """
+
 import base64
 import io
 import numpy as np
@@ -15,6 +16,7 @@ from ocr_engine import BBox, Detection, OCRResult, OCREngine
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _make_png(w: int = 20, h: int = 10, color=(128, 64, 32)) -> bytes:
     img = Image.new("RGB", (w, h), color=color)
     buf = io.BytesIO()
@@ -24,8 +26,11 @@ def _make_png(w: int = 20, h: int = 10, color=(128, 64, 32)) -> bytes:
 
 # ── BBox ─────────────────────────────────────────────────────────────────────
 
+
 def test_bbox_fields():
-    b = BBox(x1=10, y1=20, x2=110, y2=50, center_x=60, center_y=35, width=100, height=30)
+    b = BBox(
+        x1=10, y1=20, x2=110, y2=50, center_x=60, center_y=35, width=100, height=30
+    )
     assert b.x1 == 10
     assert b.y1 == 20
     assert b.x2 == 110
@@ -44,6 +49,7 @@ def test_bbox_center_is_midpoint():
 
 # ── Detection ─────────────────────────────────────────────────────────────────
 
+
 def test_detection_fields():
     bbox = BBox(x1=0, y1=0, x2=50, y2=20, center_x=25, center_y=10, width=50, height=20)
     d = Detection(text="Hello", confidence=0.9, bbox=bbox)
@@ -59,6 +65,7 @@ def test_detection_confidence_range():
 
 
 # ── OCRResult ─────────────────────────────────────────────────────────────────
+
 
 def test_ocr_result_fields():
     result = OCRResult(
@@ -76,13 +83,16 @@ def test_ocr_result_fields():
 
 
 def test_ocr_result_mutable_detections():
-    result = OCRResult(detections=[], processing_time_ms=0, device="cpu", image_w=1, image_h=1)
+    result = OCRResult(
+        detections=[], processing_time_ms=0, device="cpu", image_w=1, image_h=1
+    )
     bbox = BBox(x1=0, y1=0, x2=1, y2=1, center_x=0, center_y=0, width=1, height=1)
     result.detections.append(Detection(text="A", confidence=0.8, bbox=bbox))
     assert len(result.detections) == 1
 
 
 # ── OCREngine.from_bytes ──────────────────────────────────────────────────────
+
 
 def test_from_bytes_returns_ndarray():
     arr = OCREngine.from_bytes(_make_png())
@@ -107,6 +117,7 @@ def test_from_bytes_color_preserved():
 
 
 # ── OCREngine.from_base64 ─────────────────────────────────────────────────────
+
 
 def test_from_base64_plain():
     b64 = base64.b64encode(_make_png(w=4, h=4)).decode()
